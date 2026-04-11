@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animación Realista de Balón de Fútbol Rebotando</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Physics variables
+        let ballY = canvas.height - 100;
+        let ballVY = -25;
+        const gravity = 0.8;
+        const bounceDamping = 0.85;
+        const airResistance = 0.999;
+        let ballX = canvas.width / 2;
+        let ballVX = 0;
+        const ballRadius = 40;
+        let rotationX = 0;
+        let rotationY = 0;
+        let rotationZ = 0;
+
+        // Colors
+        const grassColor = '#228B22';
+        const lineColor = '#FFFFFF';
+        const standColor = '#696969';
+        const crowdColor = '#FFD700';
+
+        // Stadium dimensions
+        const fieldHeight = canvas.height * 0.8;
+        const fieldY = canvas.height - fieldHeight;
+
+        // Crowd
+        let crowd = [];
+        for (let i = 0; i < 200; i++) {
+            crowd.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * fieldY,
+                color: crowdColor,
+                anim: Math.random() * Math.PI * 2
+            });
+        }
+
+        // Particles for dust
+        let particles = [];
+        function addParticle(x, y, vx, vy) {
+            particles.push({ x, y, vx, vy, life: 30 });
+        }
+
+        // Wind
+        let wind = 0;
+        function updateWind() {
+            wind = (Math.random() - 0.5) * 0.02;
+        }
+
+        // Draw stadium
+        function drawStadium() {
+            // Sky
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, fieldY);
+
+            // Stands
+            ctx.fillStyle = standColor;
+            ctx.fillRect(0, 0, canvas.width, fieldY);
+
+            // Crowd
+            crowd.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y + Math.sin(p.anim) * 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+                p.anim += 0.05;
+            });
+
+            // Field
+            ctx.fillStyle = grassColor;
+            ctx.fillRect(0, fieldY, canvas.width, fieldHeight);
+
+            // Field lines
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, fieldY + fieldHeight / 2);
+            ctx.lineTo(canvas.width, fieldY + fieldHeight / 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, fieldY);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+
+            // Center circle
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, fieldY + fieldHeight / 2, 50, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Goals
+            ctx.strokeRect(canvas.width / 2 - 100, fieldY - 50, 200, 50);
+
+            // Goal nets
+            ctx.strokeStyle = '#C0C0C0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                // Vertical lines
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2 - 100 + i * 20, fieldY - 50);
+                ctx.lineTo(canvas.width / 2 - 100 + i * 20, fieldY);
+                ctx.stroke();
+                // Horizontal lines
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2 - 100, fieldY - 50 + i * 5);
+                ctx.lineTo(canvas.width / 2 + 100, fieldY - 50 + i * 5);
+                ctx.stroke();
+            }
+        }
+
+        // Draw ball
+        function drawBall() {
+            const centerX = ballX;
+            const centerY = ballY;
+
+            // Draw ball as circle with soccer pattern
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotationZ);
+
+            // Main ball
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(0, 0, ballRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Black patches
+            ctx.fillStyle = '#000000';
+            // Top left
+            ctx.beginPath();
+            ctx.arc(-ballRadius * 0.5, -ballRadius * 0.5, ballRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            // Bottom right
+            ctx.beginPath();
+            ctx.arc(ballRadius * 0.5, ballRadius * 0.5, ballRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            // Top right
+            ctx.beginPath();
+            ctx.arc(ballRadius * 0.5, -ballRadius * 0.5, ballRadius * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Bottom left
+            ctx.beginPath();
+            ctx.arc(-ballRadius * 0.5, ballRadius * 0.5, ballRadius * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Shadow
+            const shadowY = canvas.height - 20;
+            const shadowHeight = Math.max(10, 50 - (ballY - fieldY) / 10);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(centerX, shadowY, shadowHeight, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Animation loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawStadium();
+
+            // Physics
+            updateWind();
+            ballVY += gravity;
+            ballVY *= airResistance;
+            ballVX += wind;
+            ballVX *= airResistance;
+            ballY += ballVY;
+            ballX += ballVX;
+
+            if (ballY >= canvas.height - ballRadius) {
+                ballY = canvas.height - ballRadius;
+                ballVY *= -bounceDamping;
+                ballVX *= 0.9; // friction
+                if (Math.abs(ballVY) < 1) ballVY = -25; // Reset
+                // Add dust particles
+                for (let i = 0; i < 10; i++) {
+                    addParticle(ballX + (Math.random() - 0.5) * 40, ballY, (Math.random() - 0.5) * 3, Math.random() * -3);
+                }
+            }
+
+            if (ballX - ballRadius < 0 || ballX + ballRadius > canvas.width) {
+                ballVX *= -bounceDamping;
+                ballX = Math.max(ballRadius, Math.min(canvas.width - ballRadius, ballX));
+                // Add particles on wall bounce
+                for (let i = 0; i < 5; i++) {
+                    addParticle(ballX, ballY + (Math.random() - 0.5) * 40, ballVX * 0.5 + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+                }
+            }
+
+            // Update particles
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1; // gravity for particles
+                p.life--;
+                return p.life > 0 && p.y < canvas.height;
+            });
+
+            // Rotation
+            rotationX += ballVY * 0.01;
+            rotationY += ballVX * 0.01;
+            rotationZ += 0.02;
+
+            drawBall();
+
+            // Draw particles
+            ctx.fillStyle = 'rgba(139, 69, 19, 0.5)'; // brown dust
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
