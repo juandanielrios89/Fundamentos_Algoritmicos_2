@@ -17,7 +17,7 @@ def calcular_factura_final(precios):
 
     return total_acumulado, promedio
 
-Carrito_compras = [19.99, 5.49, 3.50, 12.00]
+Carrito_compras = [59.99, 35.49, 43.50, 112.00]
 total, promedio = calcular_factura_final(Carrito_compras)
 print("valores retornados ->", "total", total, "promedio", promedio)
 
