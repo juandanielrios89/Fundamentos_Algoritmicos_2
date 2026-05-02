@@ -1,5 +1,5 @@
 def evaluar_numeros(lista):
-    print("Iniciando analisis algoritmico")
+    print("Iniciando analisis algoritmico de numeros pares e impares")
     for numero in lista:
         if numero % 2 == 0:
             print(f"[{numero}] -es par")
@@ -7,4 +7,4 @@ def evaluar_numeros(lista):
             print(f"[{numero}] -es impar")
 
 mis_numeros = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-evaluar_numeros(mis_numeros) 
+evaluar_numeros(mis_numeros)   
